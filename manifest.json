@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Hello World Extension",
-  "version": "1.0",
-  "description": "A simple hello world extension",
+  "name": "Paper Summarizer",
+  "version": "0.1",
+  "description": "Summarize research papers",
 
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_title": "Paper Summarizer",
+    "type": "panel"
   },
   "permissions": ["activeTab", "storage", "scripting"],
   "background": {
