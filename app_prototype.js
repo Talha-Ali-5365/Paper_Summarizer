@@ -32,7 +32,7 @@ const generatePrompt = (inputText, summaryType) => {
   if (summaryType === "detailed") {
     prompt = `Provide a detailed summary of the following text:\n\n${inputText}`;
   } else if (summaryType === "concise") {
-    prompt = `Provide a concise summary of the following text:\n\n${inputText}, reducing it to the most important points while maintaining clarity and coherence, MAX 50 WORDS.`;
+    prompt = `Provide a concise summary of the following text:\n\n${inputText}`;
   }
 
   return prompt;
