@@ -9,7 +9,15 @@
     "default_title": "Paper Summarizer",
     "type": "panel"
   },
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "webRequest",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.arxiv.org/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
