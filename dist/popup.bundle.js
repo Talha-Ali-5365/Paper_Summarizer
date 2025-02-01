@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",(()=>{console.log("Popup initialized")})),chrome.runtime.onMessage.addListener(((e,o,n)=>{"processPaper"===e.action&&console.log("Processing paper:",e.paper)}));
