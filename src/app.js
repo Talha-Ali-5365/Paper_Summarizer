@@ -15,8 +15,6 @@ import * as pdfjsLib from 'pdfjs-dist';
 const workerSrc = chrome.runtime.getURL('pdf.worker.min.js');
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
-const GEMINI_API_KEY = "Your_Gemini_API_Key_Here";
-
 const SYSTEM_PROMPT = `You are an expert academic research analyst. Your task is to provide a comprehensive analysis of research papers in a clear, structured format:
 
 1. Title and Authors Overview
@@ -69,34 +67,81 @@ const rateLimiter = {
     }
 };
 
-// Function to get the analysis response from Gemini
-const get_response = async (inputText) => {
+// Function to get the analysis response based on selected model
+const get_response = async (inputText, model, apiKey) => {
     try {
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-1219:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                contents: [{
-                    parts: [{
-                        text: SYSTEM_PROMPT + "\n\n" + inputText
-                    }]
-                }]
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
+        let response;
+        
+        switch(model) {
+            case 'gemini':
+                response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-1219:generateContent?key=${apiKey}`,
+                    {
+                        contents: [{
+                            parts: [{
+                                text: SYSTEM_PROMPT + "\n\n" + inputText
+                            }]
+                        }]
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                if (response.data.candidates && response.data.candidates.length > 0) {
+                    return response.data.candidates[0].content.parts[0].text;
                 }
-            }
-        );
+                break;
 
-        console.log("API Response:", response.data);
+            case 'deepseek':
+                response = await axios.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    {
+                        model: "deepseek/deepseek-r1:free",
+                        messages: [
+                            { role: "system", content: SYSTEM_PROMPT },
+                            { role: "user", content: inputText },
+                        ],
+                        stream: true,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${apiKey}`,
+                            "Content-Type": "application/json",
+                        },
+                        responseType: "stream",
+                    }
+                );
+                return response.data;
 
-        if (response.data.candidates && response.data.candidates.length > 0) {
-            return response.data.candidates[0].content.parts[0].text;
-        } else if (response.data.error) {
-            throw new Error(response.data.error.message);
-        } else {
-            throw new Error("No response generated from API.");
+            case 'o3-mini':
+                response = await axios.post(
+                    "https://models.inference.ai.azure.com/chat/completions",
+                    {
+                        messages: [
+                            { role: "developer", content: SYSTEM_PROMPT },
+                            { role: "user", content: inputText }
+                        ],
+                        model: "o3-mini"
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        }
+                    }
+                );
+                return response.data.choices[0].message.content;
+
+            default:
+                throw new Error('Invalid model selected');
         }
+
+        if (response.data.error) {
+            throw new Error(response.data.error.message);
+        }
+        throw new Error("No response generated from API.");
     } catch (error) {
         console.error("API request failed:", error);
         throw error;
@@ -129,7 +174,7 @@ async function loadPDF(url) {
 }
 
 // Function to analyze the research paper
-export async function summarize_paper(pdfUrl) {
+export async function summarize_paper(pdfUrl, model, apiKey) {
     try {
         console.log("Loading and extracting text from PDF...");
 
@@ -138,7 +183,7 @@ export async function summarize_paper(pdfUrl) {
         console.log("Text extracted from PDF:\n", extractedText);
 
         // Split text into chunks if it's too long
-        const maxChunkSize = 30000; // Gemini has a larger context window
+        const maxChunkSize = 30000;
         const chunks = [];
         for (let i = 0; i < extractedText.length; i += maxChunkSize) {
             chunks.push(extractedText.slice(i, i + maxChunkSize));
@@ -152,7 +197,7 @@ export async function summarize_paper(pdfUrl) {
                 `Analyze this research paper and provide a detailed summary:\n\n${chunks[i]}` :
                 `Continue analyzing the paper with this additional section:\n\n${chunks[i]}`;
             
-            const analysis = await rateLimiter.add(() => get_response(chunkPrompt));
+            const analysis = await rateLimiter.add(() => get_response(chunkPrompt, model, apiKey));
             combinedAnalysis += (i === 0 ? analysis : '\n\n' + analysis);
         }
 

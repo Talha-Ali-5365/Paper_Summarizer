@@ -2,6 +2,9 @@ import { summarize_paper } from './app.js';
 import { marked } from 'marked';
 console.log("Content script loaded.");
 
+// Store settings globally for the content script
+let extensionSettings = { model: 'gemini', apiKey: '' };
+
 // Configure marked options
 marked.setOptions({
     breaks: true,
@@ -180,8 +183,83 @@ function createSummaryPopup(summary) {
     return summaryPopup;
 }
 
-// Check if we're on an arXiv search results page
-if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-title')) {
+// Function to create settings popup
+function createSettingsPopup() {
+    const settingsPopup = document.createElement('div');
+    settingsPopup.id = 'settings-popup';
+    settingsPopup.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 400px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 20px;
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    `;
+
+    settingsPopup.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 16px;">LLM Settings</h2>
+            <button id="back-button" style="background: none; border: none; cursor: pointer; padding: 5px 10px;">← Back</button>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px;">Model:</label>
+            <select id="model-select" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="gemini" ${extensionSettings.model === 'gemini' ? 'selected' : ''}>Gemini</option>
+                <option value="deepseek" ${extensionSettings.model === 'deepseek' ? 'selected' : ''}>Deepseek R1</option>
+                <option value="o3-mini" ${extensionSettings.model === 'o3-mini' ? 'selected' : ''}>O3-Mini</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px;">API Key:</label>
+            <input type="password" id="api-key" value="${extensionSettings.apiKey || ''}" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button id="save-settings" style="
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        ">Save Settings</button>
+    `;
+
+    // Add event listeners
+    settingsPopup.querySelector('#back-button').addEventListener('click', () => {
+        settingsPopup.remove();
+        showPaperSelectionPopup();
+    });
+
+    settingsPopup.querySelector('#save-settings').addEventListener('click', () => {
+        const model = settingsPopup.querySelector('#model-select').value;
+        const apiKey = settingsPopup.querySelector('#api-key').value;
+        
+        if (!apiKey) {
+            alert('Please enter an API key');
+            return;
+        }
+        
+        // Update global settings
+        extensionSettings = { model, apiKey };
+        
+        // Save to chrome.storage
+        chrome.storage.sync.set({
+            llmSettings: extensionSettings
+        }, () => {
+            settingsPopup.remove();
+            showPaperSelectionPopup();
+        });
+    });
+
+    return settingsPopup;
+}
+
+// Function to show paper selection popup
+function showPaperSelectionPopup() {
     const papers = [];
     document.querySelectorAll('.arxiv-result').forEach((result, index) => {
         const title = result.querySelector('.title').textContent;
@@ -222,7 +300,10 @@ if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-ti
     let popupContentHTML = `
         <div class="popup-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f5f5f5; padding: 10px; border-radius: 8px 8px 0 0; cursor: move;">
             <h1 style="margin: 0; font-size: 16px;">Select a Paper to Process</h1>
-            <button id="close-selection" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 5px; color: #666;">×</button>
+            <div>
+                <button id="settings-button" style="background: none; border: none; cursor: pointer; padding: 5px 10px; margin-right: 5px;">⚙️</button>
+                <button id="close-selection" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 5px; color: #666;">×</button>
+            </div>
         </div>
         <div id="popup-content" style="overflow-y: auto; max-height: calc(80vh - 120px); margin-bottom: 10px;">
             <form id="paper-selection-form">
@@ -305,6 +386,18 @@ if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-ti
         popup.remove();
     });
 
+    // Add settings button functionality
+    popup.querySelector('#settings-button').addEventListener('click', () => {
+        popup.remove();
+        chrome.storage.sync.get(['llmSettings'], (result) => {
+            if (result.llmSettings) {
+                extensionSettings = result.llmSettings;
+            }
+            const settingsPopup = createSettingsPopup();
+            document.body.appendChild(settingsPopup);
+        });
+    });
+
     // Handle paper processing
     popup.querySelector('#process-paper-btn').addEventListener('click', async () => {
         const selectedPaper = popup.querySelector('input[name="paper"]:checked');
@@ -313,18 +406,21 @@ if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-ti
             return;
         }
 
-        const paper = papers[selectedPaper.value];
-        popup.remove(); // Remove selection popup
+        if (!extensionSettings.apiKey) {
+            alert('Please configure your LLM settings first');
+            return;
+        }
 
-        // Show loading popup
+        const paper = papers[selectedPaper.value];
+        popup.remove();
+
         const loadingPopup = createLoadingPopup();
         document.body.appendChild(loadingPopup);
 
         try {
-            const summary = await summarize_paper(paper.pdfLink);
-            loadingPopup.remove(); // Remove loading popup
+            const summary = await summarize_paper(paper.pdfLink, extensionSettings.model, extensionSettings.apiKey);
+            loadingPopup.remove();
             
-            // Show summary popup
             const summaryPopup = createSummaryPopup(summary);
             document.body.appendChild(summaryPopup);
         } catch (error) {
@@ -332,4 +428,9 @@ if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-ti
             alert('Error generating summary: ' + error.message);
         }
     });
+}
+
+// Check if we're on an arXiv search results page
+if (window.location.hostname === 'arxiv.org' && document.querySelector('.list-title')) {
+    showPaperSelectionPopup();
 }
