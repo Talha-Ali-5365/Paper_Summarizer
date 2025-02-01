@@ -1,2 +1,57 @@
-src/.DS_Store
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+build/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+debug.log
+
+# Environment variables and secrets
 .env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Chrome Extension specific
+*.pem
+*.crx
+*.zip
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
