@@ -33,7 +33,7 @@ A powerful Chrome extension that automatically summarizes academic papers from a
 
 1. **Clone the Repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Talha-Ali-5365/Paper_Summarizer.git
    cd PaperSummarizer
    ```
 
