@@ -1,4 +1,4 @@
-# Paper Summarizer Chrome Extension
+# 𝗣𝗮𝗽𝗲𝗿 𝗦𝘂𝗺𝗺𝗮𝗿𝗶𝘀𝗲𝗿, 𝗬𝗼𝘂𝗿 𝗔𝗜-Powered 𝗔𝗿𝗫𝗶𝘃 𝗖𝗼𝗽𝗶𝗹𝗼𝘁
 
 A powerful Chrome extension that automatically summarizes academic papers from arXiv using Google's Gemini AI. Get structured, easy-to-understand summaries of complex research papers with just one click.
 
@@ -27,14 +27,14 @@ A powerful Chrome extension that automatically summarizes academic papers from a
 
 - Node.js (v14 or higher)
 - npm (comes with Node.js)
-- Google Chrome browser
+- Google Chrome (or any Chromium browser)
 
 ### Setup Instructions
 
 1. **Clone the Repository**
    ```bash
    git clone https://github.com/Talha-Ali-5365/Paper_Summarizer.git
-   cd PaperSummarizer
+   cd Paper_Summarizer
    ```
 
 2. **Install Dependencies**
@@ -56,11 +56,10 @@ A powerful Chrome extension that automatically summarizes academic papers from a
 
 ### API Key Setup
 
-1. Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Replace the API key in `src/app.js`:
-   ```javascript
-   const GEMINI_API_KEY = "your-api-key-here";
-   ```
+1. Get your API key for either: [Gemini 2.0 Flash Thinking (Google AI Studio)](https://makersuite.google.com/app/apikey), [DeepSeek R1 (OpenRouter)](https://openrouter.ai/docs/api-keys), [OpenAI o3-mini (GitHub models)](https://github.com/marketplace/models/azure-openai/o3-mini/playground)
+2. When on arXiv, click the gear (⚙) icon.
+3. Select your choice of model and enter your API key.
+
 
 ## Usage
 
