@@ -21,6 +21,12 @@ A powerful Chrome extension that automatically summarizes academic papers from a
   - Clean, modern design
   - Easy paper selection
 
+## Demo Video 
+
+
+https://github.com/user-attachments/assets/a42b3a87-2ab9-4a04-bdb2-8fec3ff408df
+
+
 ## Installation
 
 ### Prerequisites
