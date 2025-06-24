@@ -66,7 +66,7 @@ https://github.com/user-attachments/assets/a42b3a87-2ab9-4a04-bdb2-8fec3ff408df
 
 ### API Key Setup
 
-1. Get your API key for either: [Gemini 2.0 Flash Thinking (Google AI Studio)](https://makersuite.google.com/app/apikey), [DeepSeek R1 (OpenRouter)](https://openrouter.ai/docs/api-keys), [OpenAI o3-mini (GitHub models)](https://github.com/marketplace/models/azure-openai/o3-mini/playground)
+1. Get your API key for either: [Gemini 2.5 Flash (with Thinking) (Google AI Studio)](https://makersuite.google.com/app/apikey), [DeepSeek R1 (OpenRouter)](https://openrouter.ai/docs/api-keys), [OpenAI o4-mini (GitHub models)](https://github.com/marketplace/models/azure-openai/o4-mini/playground)
 2. When on arXiv, click the gear (⚙) icon.
 3. Select your choice of model and enter your API key.
 
@@ -182,6 +182,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For issues, questions, or contributions:
+
 - Open an issue on GitHub
 - Submit a pull request
 - Contact the maintainers

@@ -68,20 +68,24 @@ const rateLimiter = {
 };
 
 // Function to get the analysis response based on selected model
-const get_response = async (inputText, model, apiKey) => {
+const get_response = async (inputText, model, apiKey, autoThinking = true, thinkingBudget = 8192) => {
     try {
         let response;
         
         switch(model) {
             case 'gemini':
+                const thinkingBudgetValue = autoThinking ? -1 : thinkingBudget;
                 response = await axios.post(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-1219:generateContent?key=${apiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
                     {
                         contents: [{
                             parts: [{
                                 text: SYSTEM_PROMPT + "\n\n" + inputText
                             }]
-                        }]
+                        }],
+                        generationConfig: {
+                            thinkingBudget: thinkingBudgetValue
+                        }
                     },
                     {
                         headers: {
@@ -115,7 +119,7 @@ const get_response = async (inputText, model, apiKey) => {
                 );
                 return response.data;
 
-            case 'o3-mini':
+            case 'o4-mini':
                 response = await axios.post(
                     "https://models.inference.ai.azure.com/chat/completions",
                     {
@@ -123,7 +127,7 @@ const get_response = async (inputText, model, apiKey) => {
                             { role: "developer", content: SYSTEM_PROMPT },
                             { role: "user", content: inputText }
                         ],
-                        model: "o3-mini"
+                        model: "o4-mini"
                     },
                     {
                         headers: {
@@ -174,7 +178,7 @@ async function loadPDF(url) {
 }
 
 // Function to analyze the research paper
-export async function summarize_paper(pdfUrl, model, apiKey) {
+export async function summarize_paper(pdfUrl, model, apiKey, autoThinking = true, thinkingBudget = 8192) {
     try {
         console.log("Loading and extracting text from PDF...");
 
@@ -197,7 +201,7 @@ export async function summarize_paper(pdfUrl, model, apiKey) {
                 `Analyze this research paper and provide a detailed summary:\n\n${chunks[i]}` :
                 `Continue analyzing the paper with this additional section:\n\n${chunks[i]}`;
             
-            const analysis = await rateLimiter.add(() => get_response(chunkPrompt, model, apiKey));
+            const analysis = await rateLimiter.add(() => get_response(chunkPrompt, model, apiKey, autoThinking, thinkingBudget));
             combinedAnalysis += (i === 0 ? analysis : '\n\n' + analysis);
         }
 

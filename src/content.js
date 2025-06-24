@@ -3,7 +3,12 @@ import { marked } from 'marked';
 console.log("Content script loaded.");
 
 // Store settings globally for the content script
-let extensionSettings = { model: 'gemini', apiKey: '' };
+let extensionSettings = { 
+    model: 'gemini', 
+    apiKey: '', 
+    autoThinking: true, 
+    thinkingBudget: 8192 
+};
 
 // Configure marked options
 marked.setOptions({
@@ -209,13 +214,30 @@ function createSettingsPopup() {
             <label style="display: block; margin-bottom: 5px;">Model:</label>
             <select id="model-select" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 <option value="gemini" ${extensionSettings.model === 'gemini' ? 'selected' : ''}>Gemini</option>
+                <option value="o4-mini" ${extensionSettings.model === 'o4-mini' ? 'selected' : ''}>o4-mini</option>
                 <option value="deepseek" ${extensionSettings.model === 'deepseek' ? 'selected' : ''}>Deepseek R1</option>
-                <option value="o3-mini" ${extensionSettings.model === 'o3-mini' ? 'selected' : ''}>O3-Mini</option>
             </select>
         </div>
         <div style="margin-bottom: 15px;">
             <label style="display: block; margin-bottom: 5px;">API Key:</label>
             <input type="password" id="api-key" value="${extensionSettings.apiKey || ''}" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 10px;">Thinking Budget (Gemini only):</label>
+            <div style="margin-bottom: 10px;">
+                <label style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <input type="checkbox" id="auto-thinking" ${extensionSettings.autoThinking !== false ? 'checked' : ''} style="margin-right: 8px;">
+                    Auto (Dynamic thinking)
+                </label>
+            </div>
+            <div id="thinking-budget-controls" style="${extensionSettings.autoThinking !== false ? 'opacity: 0.5; pointer-events: none;' : ''}">
+                <input type="range" id="thinking-budget-slider" min="0" max="24576" value="${extensionSettings.thinkingBudget || 8192}" style="width: 100%; margin-bottom: 5px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 5px;">
+                    <span>0 (Off)</span>
+                    <span>24576 (Max)</span>
+                </div>
+                <input type="number" id="thinking-budget-input" min="0" max="24576" value="${extensionSettings.thinkingBudget || 8192}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
+            </div>
         </div>
         <button id="save-settings" style="
             background: #4285f4;
@@ -234,9 +256,37 @@ function createSettingsPopup() {
         showPaperSelectionPopup();
     });
 
+    // Auto thinking checkbox handler
+    const autoThinkingCheckbox = settingsPopup.querySelector('#auto-thinking');
+    const thinkingBudgetControls = settingsPopup.querySelector('#thinking-budget-controls');
+    
+    autoThinkingCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            thinkingBudgetControls.style.opacity = '0.5';
+            thinkingBudgetControls.style.pointerEvents = 'none';
+        } else {
+            thinkingBudgetControls.style.opacity = '1';
+            thinkingBudgetControls.style.pointerEvents = 'auto';
+        }
+    });
+
+    // Sync slider and number input
+    const slider = settingsPopup.querySelector('#thinking-budget-slider');
+    const numberInput = settingsPopup.querySelector('#thinking-budget-input');
+    
+    slider.addEventListener('input', (e) => {
+        numberInput.value = e.target.value;
+    });
+    
+    numberInput.addEventListener('input', (e) => {
+        slider.value = e.target.value;
+    });
+
     settingsPopup.querySelector('#save-settings').addEventListener('click', () => {
         const model = settingsPopup.querySelector('#model-select').value;
         const apiKey = settingsPopup.querySelector('#api-key').value;
+        const autoThinking = settingsPopup.querySelector('#auto-thinking').checked;
+        const thinkingBudget = parseInt(settingsPopup.querySelector('#thinking-budget-input').value);
         
         if (!apiKey) {
             alert('Please enter an API key');
@@ -244,7 +294,7 @@ function createSettingsPopup() {
         }
         
         // Update global settings
-        extensionSettings = { model, apiKey };
+        extensionSettings = { model, apiKey, autoThinking, thinkingBudget };
         
         // Save to chrome.storage
         chrome.storage.sync.set({
@@ -391,7 +441,12 @@ function showPaperSelectionPopup() {
         popup.remove();
         chrome.storage.sync.get(['llmSettings'], (result) => {
             if (result.llmSettings) {
-                extensionSettings = result.llmSettings;
+                extensionSettings = {
+                    model: result.llmSettings.model || 'gemini',
+                    apiKey: result.llmSettings.apiKey || '',
+                    autoThinking: result.llmSettings.autoThinking !== false,
+                    thinkingBudget: result.llmSettings.thinkingBudget || 8192
+                };
             }
             const settingsPopup = createSettingsPopup();
             document.body.appendChild(settingsPopup);
@@ -418,7 +473,13 @@ function showPaperSelectionPopup() {
         document.body.appendChild(loadingPopup);
 
         try {
-            const summary = await summarize_paper(paper.pdfLink, extensionSettings.model, extensionSettings.apiKey);
+            const summary = await summarize_paper(
+                paper.pdfLink, 
+                extensionSettings.model, 
+                extensionSettings.apiKey,
+                extensionSettings.autoThinking,
+                extensionSettings.thinkingBudget
+            );
             loadingPopup.remove();
             
             const summaryPopup = createSummaryPopup(summary);

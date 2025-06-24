@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Paper Summarizer",
-  "version": "0.1",
+  "version": "1.1.0",
   "description": "Summarize research papers",
   "action": {
     "default_popup": "popup.html",
