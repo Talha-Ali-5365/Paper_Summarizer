@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = `You are an expert academic research analyst. Your task is
 6. Practical Applications
 7. Limitations and Future Work
 
-Present the information in a way that both academics and general readers can understand.`;
+Present the information in a way that both academics and general readers can understand. However, you do not need to disclose your role.`;
 
 // Simple rate limiting implementation
 const rateLimiter = {

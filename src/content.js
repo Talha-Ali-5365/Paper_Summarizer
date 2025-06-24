@@ -224,19 +224,32 @@ function createSummaryPopup(summary) {
                 <span style="margin-right: 12px; font-size: 24px;">📋</span>
                 Paper Summary
             </h2>
-            <button id="close-summary" style="
-                background: rgba(255,255,255,0.2);
-                border: none;
-                cursor: pointer;
-                padding: 8px;
-                border-radius: 8px;
-                color: white;
-                font-size: 18px;
-                transition: all 0.2s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">×</button>
+            <div style="display: flex; align-items: center;">
+                <button id="open-in-tab" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 18px;
+                    transition: all 0.2s ease;
+                    margin-right: 8px;
+                " title="Open summary in new tab" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">↗️</button>
+                <button id="close-summary" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 18px;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">×</button>
+            </div>
         </div>
         <div class="markdown-body" style="
             overflow-y: auto;
@@ -252,6 +265,61 @@ function createSummaryPopup(summary) {
     // Add close button functionality
     summaryPopup.querySelector('#close-summary').addEventListener('click', () => {
         summaryPopup.remove();
+    });
+
+    // Add open-in-tab functionality
+    const openBtn = summaryPopup.querySelector('#open-in-tab');
+    openBtn.addEventListener('click', () => {
+        const newWindow = window.open();
+        const cssStyles = `
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: ${extensionSettings.darkMode ? '#1a202c' : '#ffffff'};
+            color: ${extensionSettings.darkMode ? '#e2e8f0' : '#2d3748'};
+        }
+        .markdown-body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.7;
+            word-wrap: break-word;
+            color: inherit;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+            color: inherit;
+        }
+        .markdown-body h1 { border-bottom: 3px solid ${extensionSettings.darkMode ? '#63b3ed' : '#4facfe'}; }
+        .markdown-body h2 { border-bottom: 2px solid ${extensionSettings.darkMode ? '#4a5568' : '#e2e8f0'}; }
+        .markdown-body code, .markdown-body pre {
+            background: ${extensionSettings.darkMode ? '#2d3748' : '#f7fafc'};
+            border-radius: 6px;
+            padding: 4px;
+            border: 1px solid ${extensionSettings.darkMode ? '#4a5568' : '#e2e8f0'};
+        }
+        .markdown-body blockquote {
+            border-left: 4px solid ${extensionSettings.darkMode ? '#63b3ed' : '#4facfe'};
+            padding: 0 1.2em;
+            margin: 1.5em 0;
+            background: ${extensionSettings.darkMode ? '#2d3748' : '#ffffff'};
+            border-radius: 0 8px 8px 0;
+        }
+    `;
+        const htmlContent = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Paper Summary</title>
+<style>${cssStyles}</style>
+</head>
+<body>
+<div class="markdown-body">
+${marked(summary)}
+</div>
+</body>
+</html>`;
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
     });
 
     // Make the popup draggable
