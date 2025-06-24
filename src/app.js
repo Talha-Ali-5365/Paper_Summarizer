@@ -68,30 +68,30 @@ const rateLimiter = {
 };
 
 // Function to get the analysis response based on selected model
-const get_response = async (inputText, model, apiKey, autoThinking = true, thinkingBudget = 8192) => {
+const get_response = async (inputText, model, apiKey, autoThinking = true, thinkingBudget = 16384) => {
     try {
         let response;
         
         switch(model) {
             case 'gemini':
-                const thinkingBudgetValue = autoThinking ? -1 : thinkingBudget;
-                response = await axios.post(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                    {
-                        contents: [{
-                            parts: [{
-                                text: SYSTEM_PROMPT + "\n\n" + inputText
-                            }]
-                        }],
-                        generationConfig: {
-                            thinkingBudget: thinkingBudgetValue
+                // Build request payload using correct fields for Gemini 2.5 Flash
+                const geminiRequestBody = {
+                    contents: [
+                        {
+                            parts: [ { text: SYSTEM_PROMPT + "\n\n" + inputText } ]
                         }
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json'
+                    ],
+                    generationConfig: {
+                        thinkingConfig: {
+                            thinkingBudget: autoThinking ? -1 : thinkingBudget
                         }
                     }
+                };
+                console.log("Gemini request body:", JSON.stringify(geminiRequestBody, null, 2));
+                response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                    geminiRequestBody,
+                    { headers: { 'Content-Type': 'application/json' } }
                 );
                 if (response.data.candidates && response.data.candidates.length > 0) {
                     return response.data.candidates[0].content.parts[0].text;
@@ -148,6 +148,28 @@ const get_response = async (inputText, model, apiKey, autoThinking = true, think
         throw new Error("No response generated from API.");
     } catch (error) {
         console.error("API request failed:", error);
+        
+        // Enhanced error reporting for debugging
+        if (error.response) {
+            console.error("Error status:", error.response.status);
+            console.error("Error data:", error.response.data);
+            console.error("Error headers:", error.response.headers);
+            
+            // Provide more specific error messages
+            if (error.response.status === 400) {
+                const errorMessage = error.response.data?.error?.message || "Bad Request - Invalid API parameters";
+                throw new Error(`API Error (400): ${errorMessage}`);
+            } else if (error.response.status === 401) {
+                throw new Error("Authentication failed - Please check your API key");
+            } else if (error.response.status === 403) {
+                throw new Error("Access forbidden - Please verify API key permissions");
+            } else if (error.response.status === 429) {
+                throw new Error("Rate limit exceeded - Please try again later");
+            } else {
+                throw new Error(`API Error (${error.response.status}): ${error.response.data?.error?.message || error.message}`);
+            }
+        }
+        
         throw error;
     }
 };
@@ -178,7 +200,7 @@ async function loadPDF(url) {
 }
 
 // Function to analyze the research paper
-export async function summarize_paper(pdfUrl, model, apiKey, autoThinking = true, thinkingBudget = 8192) {
+export async function summarize_paper(pdfUrl, model, apiKey, autoThinking = true, thinkingBudget = 16384) {
     try {
         console.log("Loading and extracting text from PDF...");
 
